@@ -4,6 +4,7 @@ import bodyParser from "body-parser"
 import { connectDB, User } from "./db.js"
 import mongoose from "mongoose"
 import z, { email } from "zod"
+import bcrypt from "bcrypt"
 
 dotenv.config()
 const app = express()
@@ -13,22 +14,20 @@ connectDB()
 const signupRequest = z.object({
     name : z.string(),
     email : z.email(),
-    password : z.string(),
+    password : z.string().min(6),
     role : z.string("teacher" | "student")
 })
 
 
 // signup endpoint 
 app.post("/signup",async (req,res)=>{
-
-
-
     try{
-
-        const data = signupRequest.parse(req.body)
-        // console.log(req.body)
-        const {name , email , password , role } = req.body
         // parse the data with zod
+        const data = signupRequest.parse(req.body)
+
+
+
+        const {name , email , password , role } = data
         
         // find the user in the db 
         const user = await User.findOne({
@@ -36,33 +35,42 @@ app.post("/signup",async (req,res)=>{
         })
         if(user) {
             console.log("user already exist")
-            res.json({
-                success : false,
-                error : "User already exist"
-            })
+            return res.json({
+              success: false,
+              error: "Email already exists",
+            });
         }
+
+        //hash the password in using bcrypt
+        const hashedPassword = bcrypt.hash(password , process.env.SALT_ROUNDS)
+
         // if not found create entry in the db
-        const response =await User.create({
+        const response = await User.create({
             name,
             email,
-            password,
+            password : hashedPassword,
             role
         })
 
-        console.log("User created successfully")
+
+
         // return the response after creating the user
         return res.json({
             success : true,
             data : {
-                name ,
-                email 
+                id : response._id,
+                name  : response.name,
+                email : response.email,
+                role : response.role
             }
-        })
-    }catch(error){
+        }) 
+
+        
+    }catch(error){ 
         return res.json({
-            success : false,
-            error : error
-        })
+          success: false,
+          error: "Invalid request schema",
+        });
     }
 })
 
