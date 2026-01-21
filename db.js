@@ -17,8 +17,12 @@ const UserSchema = new Schema({
 const ClassSchema = new Schema({
   className: String,
   teacherId: mongoose.ObjectId, // reference to User
-  studentIds: [mongoose.ObjectId] // array of User references
-})
+  studentIds: {
+    type: [String],
+    ref: "User", // optional but recommended if you will populate
+    default: [],
+  }, // array of User references
+});
 
 const AttendanceSchema = new Schema({
   classId: mongoose.ObjectId,

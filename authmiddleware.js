@@ -6,6 +6,7 @@ export async function auth(req, res , next){
         const token = req.headers.authorization
         const user = jwt.verify(token , process.env.JWT_SECRET)
         req.userID = user.userId
+        req.ROLE = user.role
         next()
     }catch(error){
         return res.status(401).json({
@@ -38,3 +39,4 @@ export async function teacherAuth(req, res , next){
         });
     }
 }
+

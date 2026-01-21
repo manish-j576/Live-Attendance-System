@@ -5,7 +5,7 @@ import { Class, connectDB, User } from "./db.js"
 import z, { email, success } from "zod"
 import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken"
-import { auth, teacherAuth } from "./authmiddleware.js"
+import { auth, teacherAuth} from "./authmiddleware.js"
 dotenv.config()
 const app = express()
 app.use(bodyParser.json())// body parser 
@@ -214,15 +214,29 @@ async function main() {
         }
         console.log("5")
         
+
+        const user = await User.findOne({
+            _id : data.studentId
+        })
+
+
+        if(!user || user.role != "student"){
+            return res.status(404).json({
+              success: false,
+              error: "Student not found",
+            });
+        }
         // if we found the class
         let newStudentId = []
         newStudentId = [...foundClass.studentIds , data.studentId]
         console.log(newStudentId)
+
+        console.log(foundClass)
         console.log("6")
         
-        const updatedClass = Class.updateOne(
-            { _id: classId },
-            { studentIds: newStudentId },
+        const updatedClass = await Class.updateOne(
+          { _id: classId },
+          { $addToSet: { studentIds: newStudentId } },
         );
         console.log("7")
         
@@ -235,15 +249,14 @@ async function main() {
         console.log(updatedClass);
         console.log("8")
         return res.status(200).json({
-            success: true,
-            data: {
-                _id: foundClass._id,
-                className: foundClass.className,
-                teacherId: foundClass.teacherId,
-                studentIds: "updatedClass._update.studentIds",
-            },
+          success: true,
+          data: {
+            _id: fetchClass._id,
+            className: fetchClass.className,
+            teacherId: fetchClass.teacherId,
+            studentIds: fetchClass.studentIds,
+          },
         });
-        console.log("9")
     } catch (error) {
       res.status(400).json({
         success: false,
@@ -251,6 +264,88 @@ async function main() {
       });
     }
   });
+
+
+  app.get("/class/:id",auth, async (req ,res) =>{
+
+    try{
+        //ectracted class id from parameter
+        const classId = req.params.id
+        
+        // check in the DB that if the class exist 
+        const foundClass = await Class.findOne({
+            _id:classId
+        })
+
+        if(!foundClass){
+            res.status(404).json({
+                success: false,
+                error: "Class not found",
+            });
+        }
+
+        const studentDetails = await Promise.all(
+          foundClass.studentIds.map(async (studentID) => {
+            const userDetail = await User.findOne({ _id: studentID });
+
+            return {
+              _id: userDetail._id,
+              name: userDetail.name,
+              email: userDetail.email,
+            };
+          }),
+        );
+
+        if(req.ROLE == "student"){
+            console.log(foundClass.studentIds)
+                 const isFoundUser = foundClass.studentIds.find( item => item == req.userID)
+                if(!isFoundUser){
+                    return res.status(404).json({
+                        success : false ,
+                        error : "Student not found"
+                    })
+                }
+                 return res.status(200).json({
+                    success : true,
+                    className : foundClass.className,
+                    teacherId : foundClass.teacherId,
+                    students : studentDetails
+                 })
+        }
+        else if(req.ROLE == "teacher" & foundClass.teacherId == req.userID)
+        {
+            return res.status(200).json({
+              success: true,
+              className: foundClass.className,
+              teacherId: foundClass.teacherId,
+              students: studentDetails,
+            });
+        }
+        else{
+            return res.status(403).json({
+              success: false,
+              error: "Forbidden, not class teacher",
+            });
+        }
+    }catch(errror){
+        console.log(errror)
+    }
+  })
+
+  app.get("/students" , teacherAuth ,async (req , res ) => {
+    try{
+        const userDetails = await User.find(
+            {role : "student"},
+            {_id : 1 , name : 1 , email : 1}
+        )
+        return res.status(200).json({
+            success : true,
+            data : userDetails
+        })
+    }catch(error){
+        console.log(error)
+    }
+  })
 
 app.listen(process.env.PORT);
 }
