@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon server.js"
+    "dev": "nodemon wsServer.js"
   },
   "keywords": [],
   "author": "",
@@ -19,6 +19,7 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.1.4",
     "nodemon": "^3.1.11",
+    "ws": "^8.19.0",
     "zod": "^4.3.5"
   }
 }
