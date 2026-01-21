@@ -1,7 +1,7 @@
 import express from "express"
 import dotenv from "dotenv"
 import bodyParser from "body-parser"
-import { Class, connectDB, User } from "./db.js"
+import { Attendance, Class, connectDB, User } from "./db.js"
 import z, { email, success } from "zod"
 import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken"
@@ -13,7 +13,13 @@ app.use(bodyParser.json())// body parser
 
 
 async function main() {
-  console.log("app running");
+
+
+    let activeSession = {};
+
+
+
+    console.log("app running");
 
   await connectDB();
 
@@ -41,6 +47,9 @@ async function main() {
         studentId : z.string()
     }).strict()
 
+    const attendanceStartReqSchema = z.object({
+        classId : z.string()
+    }).strict()
 
   // signup endpoint
   app.post("/auth/signup",async (req,res)=>{
@@ -347,6 +356,66 @@ async function main() {
     }
   })
 
+  app.get("/class/:id/my-attendance",auth, async (req , res) =>{
+    try{
+        console.log(req.ROLE)
+        
+        //check if the user is student 
+        if(req.ROLE != "student"){
+            return res.status(404).json({
+                success : false,
+                error : "Student Not Found"
+            })
+        }
+
+        // makes the db call in the attendance find the attendence table and retrive the attendance
+        const attendance = await Attendance.findOne({
+            classId : req.params.id
+        })
+
+        console.log(attendance)
+
+
+        // return the adequte response from here
+    }catch(e){
+        console.log(e)
+    }   
+  });
+
+  app.post("/attendance/start" , teacherAuth ,async (req, res) =>{
+    try{
+        console.log("requres in the /attenddance")
+        // zod validation 
+        console.log(req.body)
+        const data = attendanceStartReqSchema.parse(req.body)
+
+        console.log(data)
+        // create a new instance of the session 
+        const newSession  = {
+            classId : data.classId,
+            startedAt : new Date().toISOString(),
+            attendance : {}
+        }
+
+        // update the inmemory global active session 
+        activeSession = newSession
+
+        //return the details for the newly created session 
+        return res.status(200).json({
+            success : true ,
+            data : {
+                classId : newSession.classId,
+                startedAt : newSession.startedAt
+            }
+        })
+
+    }catch(error){
+        return res.status(400).json({
+          success: false,
+          errror: "Invalid request schema",
+        });
+    }
+  });
 app.listen(process.env.PORT);
 }
 main()

@@ -21,7 +21,6 @@ export async function teacherAuth(req, res , next){
         console.log("teahers auth here")
         const token = req.headers.authorization
         const user = jwt.verify(token , process.env.JWT_SECRET)
-        console.log("Middleware ")
         if( user.role != "teacher"){
             return res.status(403).json({
               success: false,
@@ -39,4 +38,3 @@ export async function teacherAuth(req, res , next){
         });
     }
 }
-
