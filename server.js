@@ -86,7 +86,7 @@ async function main() {
           return res.status(201).json({
               success : true,
               data : {
-                  id : response._id,
+                  _id : response._id,
                   name  : response.name,
                   email : response.email,
                   role : response.role
@@ -115,9 +115,9 @@ async function main() {
 
       // if not found return with the user not found error
       if (!user) {
-        return res.status(404).json({
+        return res.status(400).json({
           success: false,
-          error: "User not found",
+          error: "Invalid email or password",
         });
       }
 
@@ -372,7 +372,10 @@ async function main() {
         const attendance = await Attendance.findOne({
             classId : req.params.id
         })
-
+        
+        if(attendance.status == "present"){
+          
+        }
         console.log(attendance)
 
 
