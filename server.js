@@ -11,11 +11,11 @@ const app = express()
 app.use(bodyParser.json())// body parser 
 
 
+export let activeSession = {};
 
 async function main() {
 
 
-    let activeSession = {};
 
 
 
